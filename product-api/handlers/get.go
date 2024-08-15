@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	protos "github.com/MousaZa/product-services/currency/protos/currency"
 	"github.com/MousaZa/product-services/product-api/data"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -38,6 +40,22 @@ func (p *Products) GetSingleProcut(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lp, _ := data.GetSingleProduct(id)
+
+	rr := &protos.RateRequest{
+		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
+		Destination: protos.Currencies(protos.Currencies_value["GBP"]),
+	}
+
+	resp, err := p.cc.GetRate(context.Background(), rr)
+	if err != nil {
+		p.l.Println("[Error] error getting new rate", err)
+		return
+	}
+
+	p.l.Printf("Resp %#v", resp)
+
+	lp.Price = lp.Price * resp.Rate
+
 	err = lp.ToJSONSingle(rw)
 	if err != nil {
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)

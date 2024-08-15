@@ -18,6 +18,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	protos "github.com/MousaZa/product-services/currency/protos/currency"
 	"github.com/MousaZa/product-services/product-api/data"
 	"log"
 	"net/http"
@@ -60,11 +61,12 @@ type productParameterWrapper struct {
 }
 
 type Products struct {
-	l *log.Logger
+	l  *log.Logger
+	cc protos.CurrencyClient
 }
 
-func NewProducts(l *log.Logger) *Products {
-	return &Products{l}
+func NewProducts(l *log.Logger, cc protos.CurrencyClient) *Products {
+	return &Products{l, cc}
 }
 
 type KeyProduct struct{}

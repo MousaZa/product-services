@@ -20,7 +20,7 @@ func main() {
 
 	reflection.Register(gs)
 
-	l, err := net.Listen("tcp", ":9091")
+	l, err := net.Listen("tcp", ":9092")
 	if err != nil {
 		log.Error("unable to listen", err)
 		os.Exit(1)
