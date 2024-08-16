@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	protos "github.com/MousaZa/product-services/currency/protos/currency"
+	"github.com/MousaZa/product-services/product-api/data"
 	"github.com/MousaZa/product-services/product-api/handlers"
 	"github.com/go-openapi/runtime/middleware"
 	gohandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,7 +17,7 @@ import (
 )
 
 func main() {
-	l := log.New(os.Stdout, "products-api", log.LstdFlags)
+	l := hclog.Default()
 	conn, err := grpc.Dial("localhost:9092", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
@@ -27,13 +28,17 @@ func main() {
 	// create client
 	cc := protos.NewCurrencyClient(conn)
 
+	db := data.NewProductsDB(cc, l)
+
 	// create the handlers
-	ph := handlers.NewProducts(l, cc)
+	ph := handlers.NewProducts(l, cc, db)
 
 	sm := mux.NewRouter()
 
 	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/products", ph.GetAllProducts).Queries("currency", "{[A-Z]{3}}")
 	getRouter.HandleFunc("/products", ph.GetAllProducts)
+	getRouter.HandleFunc("/products/{id:[0-9]+}", ph.GetSingleProcut).Queries("currency", "{[A-Z]{3}}")
 	getRouter.HandleFunc("/products/{id:[0-9]+}", ph.GetSingleProcut)
 
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
@@ -58,6 +63,7 @@ func main() {
 	s := http.Server{
 		Addr:         ":9090",
 		Handler:      ch(sm),
+		ErrorLog:     l.StandardLogger(&hclog.StandardLoggerOptions{}),
 		IdleTimeout:  120 * time.Second,
 		WriteTimeout: 1 * time.Second,
 		ReadTimeout:  1 * time.Second,
@@ -66,7 +72,7 @@ func main() {
 	go func() {
 		err := s.ListenAndServe()
 		if err != nil {
-			l.Fatal(err)
+			l.Error("error starting server", err)
 		}
 	}()
 
@@ -75,7 +81,7 @@ func main() {
 	signal.Notify(sigChan, os.Kill)
 
 	sig := <-sigChan
-	l.Println("Received terminate, graceful shutdown", sig)
+	l.Info("Received terminate, graceful shutdown", sig)
 	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	s.Shutdown(tc)
 }

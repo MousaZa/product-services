@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/MousaZa/product-services/currency/data"
 	protos "github.com/MousaZa/product-services/currency/protos/currency"
 	"github.com/MousaZa/product-services/currency/server"
 	"github.com/hashicorp/go-hclog"
@@ -12,9 +13,14 @@ import (
 
 func main() {
 	log := hclog.Default()
+	rates, err := data.NewRates(log)
+	if err != nil {
+		log.Error("Unable to generate rates", "error", err)
+		os.Exit(1)
+	}
 
 	gs := grpc.NewServer()
-	cs := server.NewCurrency(log)
+	cs := server.NewCurrency(log, rates)
 
 	protos.RegisterCurrencyServer(gs, cs)
 

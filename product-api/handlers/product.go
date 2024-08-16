@@ -20,7 +20,7 @@ import (
 	"fmt"
 	protos "github.com/MousaZa/product-services/currency/protos/currency"
 	"github.com/MousaZa/product-services/product-api/data"
-	"log"
+	"github.com/hashicorp/go-hclog"
 	"net/http"
 )
 
@@ -61,12 +61,13 @@ type productParameterWrapper struct {
 }
 
 type Products struct {
-	l  *log.Logger
-	cc protos.CurrencyClient
+	l         hclog.Logger
+	cc        protos.CurrencyClient
+	productDB *data.ProductsDB
 }
 
-func NewProducts(l *log.Logger, cc protos.CurrencyClient) *Products {
-	return &Products{l, cc}
+func NewProducts(l hclog.Logger, cc protos.CurrencyClient, productDB *data.ProductsDB) *Products {
+	return &Products{l, cc, productDB}
 }
 
 type KeyProduct struct{}
@@ -76,7 +77,7 @@ func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 		prod := &data.Product{}
 		err := prod.FromJSON(r.Body)
 		if err != nil {
-			p.l.Println("[ERROR] deserializing product", err)
+			p.l.Error("deserializing product", err)
 			http.Error(rw, "Error reading product", http.StatusBadRequest)
 			return
 		}
@@ -85,7 +86,7 @@ func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 
 		err = prod.Validate()
 		if err != nil {
-			p.l.Println("[ERROR] validating product", err)
+			p.l.Error("validating product", err)
 			http.Error(
 				rw,
 				fmt.Sprintf("Error validating product: %s", err),

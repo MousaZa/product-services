@@ -21,7 +21,7 @@ func (p *Products) DeleteProduct(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Unable to convert id", http.StatusBadRequest)
 		return
 	}
-	p.l.Println("Handle DELETE Products", id)
+	p.l.Debug("Handle DELETE Products", id)
 
 	err = data.DeleteProduct(id)
 

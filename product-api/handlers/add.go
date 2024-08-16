@@ -12,8 +12,8 @@ import (
 
 // AddProduct adds a product to the database00
 func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle POST Products")
+	p.l.Info("Handle POST Products")
 	prod := r.Context().Value(KeyProduct{}).(*data.Product)
-	p.l.Printf("Prod: %#v", prod)
+	p.l.Debug("Prod: %#v", prod)
 	data.AddProduct(prod)
 }

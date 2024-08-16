@@ -1,9 +1,6 @@
 package handlers
 
 import (
-	"context"
-	protos "github.com/MousaZa/product-services/currency/protos/currency"
-	"github.com/MousaZa/product-services/product-api/data"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -15,11 +12,11 @@ import (
 //
 //	200: productsResponse
 func (p *Products) GetAllProducts(rw http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle GET Products")
-
+	p.l.Info("Handle GET Products")
+	cur := r.URL.Query().Get("currency")
 	rw.Header().Add("Content-Type", "application/json")
 
-	lp := data.GetProducts()
+	lp, _ := p.productDB.GetProducts(cur)
 	err := lp.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
@@ -33,28 +30,18 @@ func (p *Products) GetAllProducts(rw http.ResponseWriter, r *http.Request) {
 //	200: productResponse
 func (p *Products) GetSingleProcut(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	cur := r.URL.Query().Get("currency")
 	id, err := strconv.Atoi(vars["id"])
 	rw.Header().Add("Content-Type", "application/json")
 	if err != nil {
 		http.Error(rw, "Unable to convert id", http.StatusBadRequest)
 		return
 	}
-	lp, _ := data.GetSingleProduct(id)
+	lp, _ := p.productDB.GetSingleProduct(id, cur)
 
-	rr := &protos.RateRequest{
-		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
-		Destination: protos.Currencies(protos.Currencies_value["GBP"]),
-	}
-
-	resp, err := p.cc.GetRate(context.Background(), rr)
-	if err != nil {
-		p.l.Println("[Error] error getting new rate", err)
-		return
-	}
-
-	p.l.Printf("Resp %#v", resp)
-
-	lp.Price = lp.Price * resp.Rate
+	//p.l.Printf("Resp %#v", resp)
+	//
+	//lp.Price = lp.Price * resp.Rate
 
 	err = lp.ToJSONSingle(rw)
 	if err != nil {
